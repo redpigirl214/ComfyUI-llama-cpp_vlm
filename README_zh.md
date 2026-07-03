@@ -1,8 +1,14 @@
 # ComfyUI-llama-cpp_vlm - Gemma4 思考控制个人 Fork
 
+**中文说明默认显示。英文说明见 [README_en.md](./README_en.md)。**
+
 这是 [lihaoyun6/ComfyUI-llama-cpp_vlm](https://github.com/lihaoyun6/ComfyUI-llama-cpp_vlm) 的个人 fork。原仓库本身基于 [kijai/ComfyUI-llama-cpp](https://github.com/kijai/ComfyUI-llama-cpp)。
 
 这个 fork 主要用于在 ComfyUI 中更方便地使用 Gemma4 GGUF 视觉模型做图片反推提示词，尤其是处理模型输出中混入 think/channel 思考内容的问题。
+
+## 界面预览
+
+![Gemma4 thinking controls preview](./img/gemma4-thinking-controls.png)
 
 ## 本 fork 的改动
 
@@ -23,6 +29,20 @@ repeat_penalty: 1.1
 ```
 
 这些默认值来自 HauhauCS Gemma4 未审查模型卡片中的推荐采样参数。
+
+## 重要提示：旧工作流需要重新拉节点
+
+安装或更新本插件后，如果你打开的是以前保存的 ComfyUI 工作流，旧工作流里原有的对应节点可能不会立刻显示新增控件。
+
+建议删除旧工作流中的这几个相关节点，然后在 ComfyUI 搜索里重新拉一次：
+
+```text
+Llama-cpp Model Loader
+Llama-cpp Parameters
+Llama-cpp Instruct
+```
+
+重新拉出节点后，才能看到 `启用思考`、`输出think块` 以及新的默认采样参数。
 
 ## 测试模型
 

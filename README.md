@@ -1,18 +1,24 @@
-# ComfyUI-llama-cpp_vlm - Gemma4 Thinking Controls Fork
+# ComfyUI-llama-cpp_vlm - Gemma4 思考控制个人 Fork
 
-This is a personal fork of [lihaoyun6/ComfyUI-llama-cpp_vlm](https://github.com/lihaoyun6/ComfyUI-llama-cpp_vlm), which itself is based on [kijai/ComfyUI-llama-cpp](https://github.com/kijai/ComfyUI-llama-cpp).
+**中文说明默认显示。英文说明见 [README_en.md](./README_en.md)。**
 
-The main purpose of this fork is to make Gemma4 image prompt reverse engineering more convenient in ComfyUI, especially when using Gemma4 GGUF vision models that may emit thought/channel text.
+这是 [lihaoyun6/ComfyUI-llama-cpp_vlm](https://github.com/lihaoyun6/ComfyUI-llama-cpp_vlm) 的个人 fork。原仓库本身基于 [kijai/ComfyUI-llama-cpp](https://github.com/kijai/ComfyUI-llama-cpp)。
 
-## What changed in this fork
+这个 fork 主要用于在 ComfyUI 中更方便地使用 Gemma4 GGUF 视觉模型做图片反推提示词，尤其是处理模型输出中混入 think/channel 思考内容的问题。
 
-- Added `启用思考` to `Llama-cpp Model Loader`.
-  - For `Gemma4`, this passes `enable_thinking` to `Gemma4ChatHandler`.
-  - Default: `false`.
-- Added `输出think块` to `Llama-cpp Instruct`.
-  - Default: `false`.
-  - When disabled, output cleanup removes common think/channel markers such as `<think>...</think>` and `<|channel>thought ... <channel|>`.
-- Updated default sampling parameters in `Llama-cpp Parameters`:
+## 界面预览
+
+![Gemma4 thinking controls preview](./img/gemma4-thinking-controls.png)
+
+## 本 fork 的改动
+
+- 在 `Llama-cpp Model Loader` 增加 `启用思考`。
+  - 当 `chat_handler` 为 `Gemma4` 时，会把该选项传给 `Gemma4ChatHandler(enable_thinking=...)`。
+  - 默认值：`false`。
+- 在 `Llama-cpp Instruct` 增加 `输出think块`。
+  - 默认值：`false`。
+  - 关闭时，会清理 `<think>...</think>`、`<|channel>thought ... <channel|>` 等常见思考/通道标记。
+- 调整 `Llama-cpp Parameters` 默认采样参数：
 
 ```text
 temperature: 0.6
@@ -22,32 +28,46 @@ min_p: 0.05
 repeat_penalty: 1.1
 ```
 
-These defaults follow the recommended sampling values listed by the HauhauCS Gemma4 uncensored model card.
+这些默认值来自 HauhauCS Gemma4 未审查模型卡片中的推荐采样参数。
 
-## Tested model
+## 重要提示：旧工作流需要重新拉节点
 
-This fork was mainly tested with:
+安装或更新本插件后，如果你打开的是以前保存的 ComfyUI 工作流，旧工作流里原有的对应节点可能不会立刻显示新增控件。
+
+建议删除旧工作流中的这几个相关节点，然后在 ComfyUI 搜索里重新拉一次：
+
+```text
+Llama-cpp Model Loader
+Llama-cpp Parameters
+Llama-cpp Instruct
+```
+
+重新拉出节点后，才能看到 `启用思考`、`输出think块` 以及新的默认采样参数。
+
+## 测试模型
+
+本 fork 主要按下面这个模型进行测试和参数调整：
 
 [HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced](https://huggingface.co/HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced)
 
-Model files mentioned by the model card:
+模型卡片中列出的主要文件：
 
 ```text
 Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf
 mmproj-Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-BF16.gguf
 ```
 
-Place GGUF model files under:
+将 GGUF 模型文件放到：
 
 ```text
 ComfyUI/models/LLM
 ```
 
-Then select the main model and the matching `mmproj` file in `Llama-cpp Model Loader`.
+然后在 `Llama-cpp Model Loader` 中选择主模型和对应的 `mmproj` 文件。
 
-## Suggested settings for image prompt reverse engineering
+## 图片反推提示词建议设置
 
-For normal image prompt reverse engineering:
+日常图片反推提示词建议：
 
 ```text
 启用思考: false
@@ -61,30 +81,30 @@ frequency_penalty: 0.0
 present_penalty: 0.0
 ```
 
-If you want to inspect raw thinking/channel output for debugging, enable `输出think块`.
+如果只是想观察模型原始 think/channel 输出，可开启 `输出think块`。
 
-If you enable `启用思考`, generation may become slower because the model may produce more reasoning tokens before the final answer.
+如果开启 `启用思考`，生成时间可能明显变长，因为模型可能会先生成更多 reasoning token。
 
-## Installation
+## 安装
 
-Clone this fork into ComfyUI `custom_nodes`:
+将此 fork 克隆到 ComfyUI 的 `custom_nodes`：
 
 ```bash
 cd ComfyUI/custom_nodes
 git clone https://github.com/redpigirl214/ComfyUI-llama-cpp_vlm.git
 ```
 
-Install requirements only if your ComfyUI environment does not already have the required dependencies:
+只有在当前 ComfyUI 环境缺少依赖时，才考虑安装 requirements：
 
 ```bash
 python -m pip install -r ComfyUI-llama-cpp_vlm/requirements.txt
 ```
 
-For existing ComfyUI environments, review dependency versions before installing requirements.
+已有 ComfyUI 环境建议先检查依赖版本，避免破坏现有环境。
 
-## Credits
+## 致谢
 
-- Original fork: [lihaoyun6/ComfyUI-llama-cpp_vlm](https://github.com/lihaoyun6/ComfyUI-llama-cpp_vlm)
-- Upstream project: [kijai/ComfyUI-llama-cpp](https://github.com/kijai/ComfyUI-llama-cpp)
+- 原 fork：[lihaoyun6/ComfyUI-llama-cpp_vlm](https://github.com/lihaoyun6/ComfyUI-llama-cpp_vlm)
+- 上游项目：[kijai/ComfyUI-llama-cpp](https://github.com/kijai/ComfyUI-llama-cpp)
 - [llama-cpp-python](https://github.com/JamePeng/llama-cpp-python)
 - [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
