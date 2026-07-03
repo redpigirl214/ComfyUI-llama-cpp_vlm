@@ -12,6 +12,7 @@ from scipy.ndimage import gaussian_filter
 from .support.cqdm import cqdm
 from .support.gguf_layers import get_layer_count
 from .support.prompt_enhancer_preset import *
+from .support.thinking_cleanup import clean_thinking_text
 
 import folder_paths
 import comfy.model_management as mm
@@ -218,6 +219,7 @@ class LLAMA_CPP_STORAGE:
         vram_limit = config["vram_limit"]
         image_max_tokens = config["image_max_tokens"]
         image_min_tokens = config["image_min_tokens"]
+        enable_thinking = bool(config.get("启用思考", False))
         n_gpu_layers = -1
         
         model_path = os.path.join(folder_paths.models_dir, 'LLM', model)
@@ -247,6 +249,8 @@ class LLAMA_CPP_STORAGE:
                 kwargs["image_min_tokens"] = image_min_tokens
             elif chat_handler in ["MiniCPM-v4.5", "GLM-4.6V", "Qwen3.5"]:
                 kwargs["enable_thinking"] = think_mode
+            elif chat_handler == "Gemma4":
+                kwargs["enable_thinking"] = enable_thinking
 
             if _MTMD:
                 kwargs["image_max_tokens"] = image_max_tokens
@@ -393,6 +397,10 @@ class llama_cpp_model_loader:
             }),
             "image_min_tokens": ("INT", {"default": 0, "min": 0, "max": 4096, "step": 32}),
             "image_max_tokens": ("INT", {"default": 0, "min": 0, "max": 4096, "step": 32}),
+            "启用思考": ("BOOLEAN", {
+                "default": False,
+                "tooltip": "Gemma4 only: pass enable_thinking to Gemma4ChatHandler."
+            }),
             }
         }
 
@@ -419,11 +427,12 @@ class llama_cpp_model_loader:
         config_str = json.dumps(custom_config, sort_keys=True, ensure_ascii=False)
         return config_str
     '''
-    def loadmodel(self, model, mmproj, chat_handler, n_ctx, vram_limit, image_min_tokens, image_max_tokens):
+    def loadmodel(self, model, mmproj, chat_handler, n_ctx, vram_limit, image_min_tokens, image_max_tokens, 启用思考):
         custom_config = {
             "model": model,
             "mmproj": mmproj,
             "chat_handler":chat_handler,
+            "启用思考": bool(启用思考),
             "n_ctx": n_ctx,
             "vram_limit": vram_limit,
             "image_min_tokens": image_min_tokens,
@@ -470,6 +479,10 @@ class llama_cpp_instruct_adv:
                     "default": False,
                     "tooltip": "Preserve the context of this conversation in RAM."
                 }),
+                "输出think块": ("BOOLEAN", {
+                    "default": False,
+                    "tooltip": "Keep model think/channel text in the final output. Off removes Gemma4 thought blocks."
+                }),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
@@ -498,7 +511,7 @@ class llama_cpp_instruct_adv:
                         item["image_url"]["url"] = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADElEQVQImWP4//8/AAX+Av5Y8msOAAAAAElFTkSuQmCC"
         return clean_messages
     
-    def process(self, llama_model, preset_prompt, custom_prompt, system_prompt, inference_mode, max_frames, max_size, seed, force_offload, save_states, unique_id, parameters=None, images=None, queue_handler=None):
+    def process(self, llama_model, preset_prompt, custom_prompt, system_prompt, inference_mode, max_frames, max_size, seed, force_offload, save_states, 输出think块, unique_id, parameters=None, images=None, queue_handler=None):
         if not LLAMA_CPP_STORAGE.llm:
             LLAMA_CPP_STORAGE.load_model(llama_model)
             #raise RuntimeError("The model has been unloaded or failed to load!")
@@ -571,6 +584,7 @@ class llama_cpp_instruct_adv:
                             break
                     output = LLAMA_CPP_STORAGE.llm.create_chat_completion(messages=messages, seed=seed, **_parameters)
                     text = output['choices'][0]['message']['content'].removeprefix(": ").lstrip()
+                    text = clean_thinking_text(text, output_think_block=bool(输出think块))
                     out2.append(text)
                     if len(frames) > 1:
                         tmp_list.append(f"====== Image {i+1} ======")
@@ -592,11 +606,13 @@ class llama_cpp_instruct_adv:
                 messages.append({"role": "user", "content": user_content})
                 output = LLAMA_CPP_STORAGE.llm.create_chat_completion(messages=messages, seed=seed, **_parameters)
                 out1 = output['choices'][0]['message']['content'].removeprefix(": ").lstrip()
+                out1 = clean_thinking_text(out1, output_think_block=bool(输出think块))
                 out2 = [out1]
         else:
             messages.append({"role": "user", "content": user_content})
             output = LLAMA_CPP_STORAGE.llm.create_chat_completion(messages=messages, seed=seed, **_parameters)
             out1 = output['choices'][0]['message']['content'].removeprefix(": ").lstrip()
+            out1 = clean_thinking_text(out1, output_think_block=bool(输出think块))
             out2 = [out1]
             
         if save_states:
@@ -628,12 +644,12 @@ class llama_cpp_parameters:
         return {
             "required": {
                 "max_tokens": ("INT", {"default": 1024, "min": 0, "max": 4096, "step": 1}),
-                "top_k": ("INT", {"default": 30, "min": 0, "max": 1000, "step": 1}),
+                "top_k": ("INT", {"default": 64, "min": 0, "max": 1000, "step": 1}),
                 "top_p": ("FLOAT", {"default": 0.9, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "min_p": ("FLOAT", {"default": 0.05, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "typical_p": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "temperature": ("FLOAT", {"default": 0.8, "min": 0.0, "max": 2.0, "step": 0.01}),
-                "repeat_penalty": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.01}),
+                "temperature": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 2.0, "step": 0.01}),
+                "repeat_penalty": ("FLOAT", {"default": 1.1, "min": 0.0, "max": 10.0, "step": 0.01}),
                 "frequency_penalty": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "present_penalty": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 2.0, "step": 0.01}),
                 #"tfs_z": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.01}),
