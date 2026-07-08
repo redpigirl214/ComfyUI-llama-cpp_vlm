@@ -13,6 +13,11 @@ from .support.cqdm import cqdm
 from .support.gguf_layers import get_layer_count
 from .support.prompt_enhancer_preset import *
 from .support.thinking_cleanup import clean_thinking_text
+from .support.output_cache import (
+    get_cached_instruct_output,
+    make_instruct_cache_key,
+    store_instruct_output,
+)
 
 import folder_paths
 import comfy.model_management as mm
@@ -124,6 +129,7 @@ class LLAMA_CPP_STORAGE:
     #states = {}
     messages = {}
     sys_prompts = {}
+    output_cache = {}
 
     @classmethod
     def clean_state(cls, id=-1):
@@ -512,12 +518,10 @@ class llama_cpp_instruct_adv:
         return clean_messages
     
     def process(self, llama_model, preset_prompt, custom_prompt, system_prompt, inference_mode, max_frames, max_size, seed, force_offload, save_states, 输出think块, unique_id, parameters=None, images=None, queue_handler=None):
-        if not LLAMA_CPP_STORAGE.llm:
-            LLAMA_CPP_STORAGE.load_model(llama_model)
-            #raise RuntimeError("The model has been unloaded or failed to load!")
-        
         if parameters is None:
             parameters = {}
+        else:
+            parameters = parameters.copy()
         
         if _MTMD:
             parameters.pop("present_penalty", None)
@@ -526,6 +530,32 @@ class llama_cpp_instruct_adv:
         _parameters = parameters.copy()
         _parameters.pop("state_uid", None)
         uid = unique_id.rpartition('.')[-1] if _uid in (None, -1) else _uid
+
+        cache_key = None
+        if not save_states:
+            cache_key = make_instruct_cache_key(
+                llama_model=llama_model,
+                preset_prompt=preset_prompt,
+                custom_prompt=custom_prompt,
+                system_prompt=system_prompt,
+                inference_mode=inference_mode,
+                max_frames=max_frames,
+                max_size=max_size,
+                seed=seed,
+                parameters=_parameters,
+                output_think_block=输出think块,
+                images=images,
+            )
+            cached_output = get_cached_instruct_output(LLAMA_CPP_STORAGE.output_cache, uid, cache_key)
+            if cached_output is not None:
+                print(f"[llama-cpp_vlm] Reusing cached output id={uid}...")
+                if force_offload:
+                    LLAMA_CPP_STORAGE.clean()
+                return cached_output
+
+        if not LLAMA_CPP_STORAGE.llm:
+            LLAMA_CPP_STORAGE.load_model(llama_model)
+            #raise RuntimeError("The model has been unloaded or failed to load!")
         
         last_sys_prompt = LLAMA_CPP_STORAGE.sys_prompts.get(f"{uid}", None)
         video_input = inference_mode == "video"
@@ -633,10 +663,13 @@ class llama_cpp_instruct_adv:
                 LLAMA_CPP_STORAGE.llm._ctx.memory_clear(True)
                 if LLAMA_CPP_STORAGE.llm.is_hybrid and LLAMA_CPP_STORAGE.llm._hybrid_cache_mgr is not None:
                     LLAMA_CPP_STORAGE.llm._hybrid_cache_mgr.clear()
-            
+
         del messages
         gc.collect()
-        return (out1, out2, uid)
+        result = (out1, out2, uid)
+        if cache_key is not None:
+            store_instruct_output(LLAMA_CPP_STORAGE.output_cache, uid, cache_key, result)
+        return result
 
 class llama_cpp_parameters:
     @classmethod
