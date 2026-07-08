@@ -1,4 +1,5 @@
 import importlib.util
+import math
 import sys
 import types
 import unittest
@@ -237,6 +238,51 @@ class ModelLoaderChangeFingerprintTests(unittest.TestCase):
         self.assertNotEqual(base, self.fingerprint(model="other-model.gguf"))
         self.assertNotEqual(base, self.fingerprint(n_ctx=4096))
         self.assertNotEqual(base, self.fingerprint(启用思考=True))
+
+
+class ComfyUICacheControlTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.nodes = load_nodes_module()
+
+    def test_instruct_node_forces_process_entry_for_internal_cache(self):
+        marker = self.nodes.llama_cpp_instruct_adv.IS_CHANGED()
+
+        self.assertTrue(math.isnan(marker))
+
+    def test_parameters_fingerprint_changes_when_top_k_changes(self):
+        base = self.nodes.llama_cpp_parameters.IS_CHANGED(
+            max_tokens=1024,
+            top_k=64,
+            top_p=0.9,
+            min_p=0.05,
+            typical_p=1.0,
+            temperature=0.6,
+            repeat_penalty=1.1,
+            frequency_penalty=0.0,
+            present_penalty=0.0,
+            mirostat_mode=0,
+            mirostat_eta=0.1,
+            mirostat_tau=5.0,
+            state_uid=-1,
+        )
+        changed = self.nodes.llama_cpp_parameters.IS_CHANGED(
+            max_tokens=1024,
+            top_k=65,
+            top_p=0.9,
+            min_p=0.05,
+            typical_p=1.0,
+            temperature=0.6,
+            repeat_penalty=1.1,
+            frequency_penalty=0.0,
+            present_penalty=0.0,
+            mirostat_mode=0,
+            mirostat_eta=0.1,
+            mirostat_tau=5.0,
+            state_uid=-1,
+        )
+
+        self.assertNotEqual(base, changed)
 
 
 if __name__ == "__main__":

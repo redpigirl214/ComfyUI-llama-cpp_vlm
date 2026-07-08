@@ -503,6 +503,10 @@ class llama_cpp_instruct_adv:
     OUTPUT_IS_LIST = (False, True, False)
     FUNCTION = "process"
     CATEGORY = "llama-cpp-vlm"
+
+    @classmethod
+    def IS_CHANGED(s, **kwargs):
+        return float("NaN")
     
     def sanitize_messages(self, messages):
         clean_messages = messages.copy()
@@ -697,6 +701,11 @@ class llama_cpp_parameters:
     RETURN_NAMES = ("parameters",)
     FUNCTION = "process"
     CATEGORY = "llama-cpp-vlm"
+
+    @classmethod
+    def IS_CHANGED(s, **kwargs):
+        return json.dumps(kwargs, sort_keys=True, ensure_ascii=False)
+
     def process(self, **kwargs):
         return (kwargs,)
     
