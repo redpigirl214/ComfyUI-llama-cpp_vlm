@@ -415,16 +415,13 @@ class llama_cpp_model_loader:
     FUNCTION = "loadmodel"
     CATEGORY = "llama-cpp-vlm"
     
-    '''
     @classmethod
-    def IS_CHANGED(s, model, mmproj, chat_handler, n_ctx, vram_limit, image_min_tokens, image_max_tokens):
-        if LLAMA_CPP_STORAGE.llm is None:
-            return float("NaN") 
-        
+    def IS_CHANGED(s, model, mmproj, chat_handler, n_ctx, vram_limit, image_min_tokens, image_max_tokens, 启用思考):
         custom_config = {
             "model": model,
             "mmproj": mmproj,
             "chat_handler":chat_handler,
+            "启用思考": bool(启用思考),
             "n_ctx": n_ctx,
             "vram_limit": vram_limit,
             "image_min_tokens": image_min_tokens,
@@ -432,7 +429,7 @@ class llama_cpp_model_loader:
         }
         config_str = json.dumps(custom_config, sort_keys=True, ensure_ascii=False)
         return config_str
-    '''
+
     def loadmodel(self, model, mmproj, chat_handler, n_ctx, vram_limit, image_min_tokens, image_max_tokens, 启用思考):
         custom_config = {
             "model": model,

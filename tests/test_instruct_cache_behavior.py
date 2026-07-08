@@ -202,5 +202,42 @@ class InstructCacheBehaviorTests(unittest.TestCase):
         self.assertEqual(self.nodes.LLAMA_CPP_STORAGE.llm.calls, 2)
 
 
+class ModelLoaderChangeFingerprintTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.nodes = load_nodes_module()
+
+    def setUp(self):
+        self.nodes.LLAMA_CPP_STORAGE.llm = None
+
+    def fingerprint(self, **overrides):
+        data = {
+            "model": "model.gguf",
+            "mmproj": "mmproj.gguf",
+            "chat_handler": "Gemma4",
+            "n_ctx": 8192,
+            "vram_limit": -1,
+            "image_min_tokens": 0,
+            "image_max_tokens": 0,
+            "启用思考": False,
+        }
+        data.update(overrides)
+        return self.nodes.llama_cpp_model_loader.IS_CHANGED(**data)
+
+    def test_model_loader_fingerprint_is_stable_without_loaded_model(self):
+        first = self.fingerprint()
+        second = self.fingerprint()
+
+        self.assertEqual(first, second)
+        self.assertNotIsInstance(first, float)
+
+    def test_model_loader_fingerprint_changes_when_loader_inputs_change(self):
+        base = self.fingerprint()
+
+        self.assertNotEqual(base, self.fingerprint(model="other-model.gguf"))
+        self.assertNotEqual(base, self.fingerprint(n_ctx=4096))
+        self.assertNotEqual(base, self.fingerprint(启用思考=True))
+
+
 if __name__ == "__main__":
     unittest.main()
