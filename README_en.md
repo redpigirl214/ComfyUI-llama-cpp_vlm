@@ -4,7 +4,10 @@ This fork has two main features:
 
 2. When the input image is unchanged, all node parameters are unchanged, and the seed is fixed, the plugin skips reverse-prompt inference and reuses the previously generated prompt.
 
-**1. Gemma4 Think Output Control**
+![Gemma4 thinking controls preview](./img/gemma4-thinking-controls.png)
+
+
+## **1. Gemma4 Think Output Control**
 
 This fork adds `启用思考` to `Llama-cpp Model Loader` and `输出think块` to `Llama-cpp Instruct`.
 
@@ -33,7 +36,8 @@ min_p: 0.05
 repeat_penalty: 1.1
 ```
 
-**2. Fixed Seed Cache**
+
+## **2. Fixed Seed Cache**
 
 If `生成前控制` / `control_after_generate` is set to `fixed`, and the input image, model, prompt, and sampling parameters are unchanged, the plugin reuses the previous prompt instead of reading the image again.
 
@@ -41,7 +45,8 @@ This is useful while tuning a workflow: reverse-prompt once, then keep adjusting
 
 If you change the image or any setting that affects the prompt result, the plugin automatically runs fresh inference.
 
-**3. Installation**
+
+## **3. Installation**
 
 Clone this fork into ComfyUI `custom_nodes`:
 
@@ -66,7 +71,8 @@ Llama-cpp Parameters
 Llama-cpp Instruct
 ```
 
-**4. Credits**
+
+## **4. Credits**
 
 - Original fork: [lihaoyun6/ComfyUI-llama-cpp_vlm](https://github.com/lihaoyun6/ComfyUI-llama-cpp_vlm)
 - Upstream project: [kijai/ComfyUI-llama-cpp](https://github.com/kijai/ComfyUI-llama-cpp)

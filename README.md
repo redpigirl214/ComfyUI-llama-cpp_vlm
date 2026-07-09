@@ -4,7 +4,10 @@
 
 二、输入图片不变、各节点参数不变、种子设为固定值（fixed）时，不会运行反推，直接使用之前生成的提示词。
 
-**一、Gemma4 Think 思考内容控制**
+![Gemma4 thinking controls preview](./img/gemma4-thinking-controls.png)
+
+
+## **一、Gemma4 Think 思考内容控制**
 
 本 fork 在 `Llama-cpp Model Loader` 节点增加了 `启用思考`，在 `Llama-cpp Instruct` 节点增加了 `输出think块`。
 
@@ -33,7 +36,8 @@ min_p: 0.05
 repeat_penalty: 1.1
 ```
 
-**二、固定种子缓存**
+
+## **二、固定种子缓存**
 
 如果你把 `生成前控制` 设为 `fixed`，并且输入图片、模型、prompt、采样参数等都不变，插件会直接沿用上一次反推出来的提示词，不再重新读图反推。
 
@@ -41,7 +45,8 @@ repeat_penalty: 1.1
 
 只要你换了图片，或改了任意会影响反推结果的参数，插件会自动重新反推。
 
-**三、安装方法**
+
+## **三、安装方法**
 
 将本 fork 克隆到 ComfyUI 的 `custom_nodes`：
 
@@ -66,7 +71,8 @@ Llama-cpp Parameters
 Llama-cpp Instruct
 ```
 
-**四、致谢**
+
+## **四、致谢**
 
 - 原 fork：[lihaoyun6/ComfyUI-llama-cpp_vlm](https://github.com/lihaoyun6/ComfyUI-llama-cpp_vlm)
 - 上游项目：[kijai/ComfyUI-llama-cpp](https://github.com/kijai/ComfyUI-llama-cpp)
