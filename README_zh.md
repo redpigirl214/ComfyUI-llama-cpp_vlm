@@ -1,28 +1,29 @@
-# ComfyUI-llama-cpp_vlm - Gemma4 思考控制个人 Fork
+本 fork 插件有以下两个功能：
 
-**中文说明默认显示。英文说明见 [README_en.md](./README_en.md)。**
+一、使用 Gemma4 GGUF 视觉模型做图片反推提示词时，可选择是否输出 think 思考内容，默认不输出。
 
-这是 [lihaoyun6/ComfyUI-llama-cpp_vlm](https://github.com/lihaoyun6/ComfyUI-llama-cpp_vlm) 的个人 fork。原仓库本身基于 [kijai/ComfyUI-llama-cpp](https://github.com/kijai/ComfyUI-llama-cpp)。
+二、输入图片不变、各节点参数不变、种子设为固定值（fixed）时，不会运行反推，直接使用之前生成的提示词。
 
-这个 fork 主要用于在 ComfyUI 中更方便地使用 Gemma4 GGUF 视觉模型做图片反推提示词，尤其是处理模型输出中混入 think/channel 思考内容的问题。
+**一、Gemma4 Think 思考内容控制**
 
-## 界面预览
+本 fork 在 `Llama-cpp Model Loader` 节点增加了 `启用思考`，在 `Llama-cpp Instruct` 节点增加了 `输出think块`。
 
-![Gemma4 thinking controls preview](./img/gemma4-thinking-controls.png)
+日常用 Gemma4 做图片反推提示词时，建议保持默认：
 
-## 本 fork 的改动
+```text
+启用思考: false
+输出think块: false
+```
 
-- 在 `Llama-cpp Model Loader` 增加 `启用思考`。
-  - 当 `chat_handler` 为 `Gemma4` 时，会把该选项传给 `Gemma4ChatHandler(enable_thinking=...)`。
-  - 默认值：`false`。
-- 在 `Llama-cpp Instruct` 增加 `输出think块`。
-  - 默认值：`false`。
-  - 关闭时，会清理 `<think>...</think>`、`<|channel>thought ... <channel|>` 等常见思考/通道标记。
-- 增加固定种子输出缓存。
-  - 同一张图片、同一套设置、种子固定时，重复运行会直接沿用上一次反推提示词。
-  - 适合先用本节点反推提示词，再反复调整后面的 KSampler 或其他节点。
-  - 如果图片、提示词、模型或任一采样参数变了，会自动重新反推。
-- 调整 `Llama-cpp Parameters` 默认采样参数：
+这样输出内容会更像普通提示词，不会把 `<think>...</think>` 或 channel 思考内容混进提示词里。
+
+如果你想观察模型原始输出，可以手动打开 `输出think块`。
+
+本 fork 主要按下面这个模型测试：
+
+[HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced](https://huggingface.co/HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced)
+
+模型作者推荐的采样参数也已作为默认值：
 
 ```text
 temperature: 0.6
@@ -32,13 +33,32 @@ min_p: 0.05
 repeat_penalty: 1.1
 ```
 
-这些默认值来自 HauhauCS Gemma4 未审查模型卡片中的推荐采样参数。
+**二、固定种子缓存**
 
-## 重要提示：旧工作流需要重新拉节点
+如果你把 `生成前控制` 设为 `fixed`，并且输入图片、模型、prompt、采样参数等都不变，插件会直接沿用上一次反推出来的提示词，不再重新读图反推。
 
-安装或更新本插件后，如果你打开的是以前保存的 ComfyUI 工作流，旧工作流里原有的对应节点可能不会立刻显示新增控件。
+这个功能适合调图时使用：先反推一次提示词，后面反复调整 KSampler 或其他节点时，就不用每次都在图片反推节点上多等十几秒。
 
-建议删除旧工作流中的这几个相关节点，然后在 ComfyUI 搜索里重新拉一次：
+只要你换了图片，或改了任意会影响反推结果的参数，插件会自动重新反推。
+
+**三、安装方法**
+
+将本 fork 克隆到 ComfyUI 的 `custom_nodes`：
+
+```bash
+cd ComfyUI/custom_nodes
+git clone https://github.com/redpigirl214/ComfyUI-llama-cpp_vlm.git
+```
+
+如果你的 ComfyUI 环境已经能正常运行原版插件，一般不建议随意重装依赖。
+
+只有在当前环境缺少依赖时，才考虑安装：
+
+```bash
+python -m pip install -r ComfyUI-llama-cpp_vlm/requirements.txt
+```
+
+安装或更新后，如果旧工作流里看不到新增选项，建议删除旧的相关节点，然后重新拉一次下述三个节点：
 
 ```text
 Llama-cpp Model Loader
@@ -46,75 +66,7 @@ Llama-cpp Parameters
 Llama-cpp Instruct
 ```
 
-重新拉出节点后，才能看到 `启用思考`、`输出think块` 以及新的默认采样参数。
-
-## 测试模型
-
-本 fork 主要按下面这个模型进行测试和参数调整：
-
-[HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced](https://huggingface.co/HauhauCS/Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced)
-
-模型卡片中列出的主要文件：
-
-```text
-Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf
-mmproj-Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-BF16.gguf
-```
-
-将 GGUF 模型文件放到：
-
-```text
-ComfyUI/models/LLM
-```
-
-然后在 `Llama-cpp Model Loader` 中选择主模型和对应的 `mmproj` 文件。
-
-## 图片反推提示词建议设置
-
-日常图片反推提示词建议：
-
-```text
-启用思考: false
-输出think块: false
-temperature: 0.6
-top_k: 64
-top_p: 0.9
-min_p: 0.05
-repeat_penalty: 1.1
-frequency_penalty: 0.0
-present_penalty: 0.0
-```
-
-如果只是想观察模型原始 think/channel 输出，可开启 `输出think块`。
-
-如果开启 `启用思考`，生成时间可能明显变长，因为模型可能会先生成更多 reasoning token。
-
-## 固定种子缓存
-
-如果你把 `生成前控制` 设为 `fixed`，并且图片、模型、prompt、采样参数都不变，插件会直接复用上一次反推出来的提示词，不再重新读图推理。
-
-这个功能适合调图时使用：先反推一次提示词，后面反复测试 KSampler 或其他节点时，就不用每次都在图片反推节点上多等十几秒。
-
-默认的 `save_states=false` 就适合这个缓存功能。如果你改了图片或任意反推相关参数，插件会自动重新反推。
-
-## 安装
-
-将此 fork 克隆到 ComfyUI 的 `custom_nodes`：
-
-```bash
-cd ComfyUI/custom_nodes
-git clone https://github.com/redpigirl214/ComfyUI-llama-cpp_vlm.git
-```
-
-只有在当前 ComfyUI 环境缺少依赖时，才考虑安装 requirements：
-
-```bash
-python -m pip install -r ComfyUI-llama-cpp_vlm/requirements.txt
-```
-
-已有 ComfyUI 环境建议先检查依赖版本，避免破坏现有环境。
-
-## 致谢
+**四、致谢**
 
 - 原 fork：[lihaoyun6/ComfyUI-llama-cpp_vlm](https://github.com/lihaoyun6/ComfyUI-llama-cpp_vlm)
 - 上游项目：[kijai/ComfyUI-llama-cpp](https://github.com/kijai/ComfyUI-llama-cpp)
