@@ -18,6 +18,10 @@ The main purpose of this fork is to make Gemma4 image prompt reverse engineering
 - Added `输出think块` to `Llama-cpp Instruct`.
   - Default: `false`.
   - When disabled, output cleanup removes common think/channel markers such as `<think>...</think>` and `<|channel>thought ... <channel|>`.
+- Added fixed-seed output caching.
+  - With the same image, same settings, and a fixed seed, repeated runs reuse the previous prompt output.
+  - Useful when you want to reverse-prompt once, then keep tuning downstream KSampler or other nodes.
+  - Changing the image, prompt, model, or any sampling parameter automatically triggers fresh inference.
 - Updated default sampling parameters in `Llama-cpp Parameters`:
 
 ```text
@@ -84,6 +88,14 @@ present_penalty: 0.0
 If you want to inspect raw thinking/channel output for debugging, enable `输出think块`.
 
 If you enable `启用思考`, generation may become slower because the model may produce more reasoning tokens before the final answer.
+
+## Fixed-seed cache
+
+If `control_after_generate` / `生成前控制` is set to `fixed`, and the image, model, prompt, and sampling parameters are unchanged, the plugin reuses the previous prompt output instead of reading the image again.
+
+This is useful while tuning a workflow: reverse-prompt the image once, then keep testing KSampler or other downstream nodes without waiting for repeated image inference.
+
+The default `save_states=false` works well for this cache. If the image or any prompt-related setting changes, the plugin automatically generates a fresh prompt.
 
 ## Installation
 
